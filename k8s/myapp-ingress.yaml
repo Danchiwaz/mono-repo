@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: mono-app
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /api/$2  # Keep /api in the path
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: dev-myapp.duckdns.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+    - host: mainachiwaz.duckdns.org
+      http:
+        paths:
+          - path: /api(/|$)(.*)   # Capture everything after /api
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5003

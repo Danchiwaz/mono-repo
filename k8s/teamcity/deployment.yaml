@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: teamcity-data-pvc
+  namespace: mono-app  # Use the same namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: teamcity-logs-pvc
+  namespace: mono-app  # Use the same namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teamcity-server
+  namespace: mono-app  # Use your desired namespace here
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teamcity
+  template:
+    metadata:
+      labels:
+        app: teamcity
+    spec:
+      initContainers:
+        - name: init-permissions
+          image: busybox
+          command: ["sh", "-c", "chown -R 1000:1000 /data /opt/teamcity"]
+          volumeMounts:
+            - name: teamcity-data
+              mountPath: /data
+            - name: teamcity-logs
+              mountPath: /opt/teamcity
+      containers:
+        - name: teamcity-server
+          image: jetbrains/teamcity-server:latest
+          ports:
+            - containerPort: 8111
+          volumeMounts:
+            - name: teamcity-data
+              mountPath: /data/teamcity_server/datadir
+            - name: teamcity-logs
+              mountPath: /opt/teamcity/logs
+      volumes:
+        - name: teamcity-data
+          persistentVolumeClaim:
+            claimName: teamcity-data-pvc
+        - name: teamcity-logs
+          persistentVolumeClaim:
+            claimName: teamcity-logs-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: teamcity-service
+  namespace: mono-app
+spec:
+  selector:
+    app: teamcity
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8111
+  type: LoadBalancer

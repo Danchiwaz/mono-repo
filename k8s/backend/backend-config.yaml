@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: mono-app
+data:
+  ConnectionStrings__DefaultConnection: "Host=db;Database=mydb;Username=postgres;Password=$(POSTGRES_PASSWORD)"
